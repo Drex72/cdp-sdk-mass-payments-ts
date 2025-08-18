@@ -27,7 +27,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PayoutForm = () => {
   const { activeToken, refreshBalance, evmAddress } = useWallet();
   const [payoutRows, setPayoutRows] = useState<TransferRecipient[]>([
-    { recipientId: '', amount: '' },
+    { address: '', amount: '' },
   ]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,26 +36,34 @@ export const PayoutForm = () => {
     useState<TransferResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateEmails = (rows: TransferRecipient[]) => {
-    const invalidEmails = rows
-      .map((row, index) => ({ email: row.recipientId, index }))
-      .filter(({ email }) => email && !EMAIL_REGEX.test(email));
-
-    if (invalidEmails.length > 0) {
-      setError(
-        `Invalid email format in row ${invalidEmails[0].index + 1}: ${invalidEmails[0].email}`
+const validateAddress = (rows: TransferRecipient[]) => {
+  // Check for Ethereum addresses - should be 42 chars long and start with 0x
+  const invalidAddresses = rows
+    .map((row, index) => ({ address: row.address, index }))
+    .filter(({ address }) => {
+      if (!address) return false; // Skip empty addresses
+      return !(
+        address.length === 42 &&
+        address.startsWith('0x') &&
+        /^0x[0-9a-fA-F]{40}$/.test(address)
       );
-      return false;
-    }
-    return true;
-  };
+    });
+
+  if (invalidAddresses.length > 0) {
+    setError(
+      `Invalid Ethereum address format in row ${invalidAddresses[0].index + 1}: ${invalidAddresses[0].address}`
+    );
+    return false;
+  }
+  return true;
+};
 
   const addRow = () => {
     if (payoutRows.length >= MAX_ROWS) {
       setError(`Maximum of ${MAX_ROWS} rows allowed`);
       return;
     }
-    setPayoutRows([...payoutRows, { recipientId: '', amount: '' }]);
+    setPayoutRows([...payoutRows, { address: '', amount: '' }]);
     setError(null);
   };
 
@@ -75,7 +83,7 @@ export const PayoutForm = () => {
       setPayoutRows(payoutRows.filter((_, i) => i !== index));
       setError(null);
     } else {
-      setPayoutRows([{ recipientId: '', amount: '' }]);
+      setPayoutRows([{ address: '', amount: '' }]);
     }
   };
 
@@ -103,13 +111,13 @@ export const PayoutForm = () => {
         }
 
         const parsedRows = dataRows.map((row) => {
-          const [recipientId, amount] = row
+          const [address, amount] = row
             .split(',')
             .map((cell) => cell.trim());
-          return { recipientId, amount };
+          return { address, amount };
         });
 
-        if (!validateEmails(parsedRows)) {
+        if (!validateAddress(parsedRows)) {
           return;
         }
 
@@ -136,7 +144,7 @@ export const PayoutForm = () => {
         throw new Error('No wallet connected');
       }
 
-      if (!validateEmails(payoutRows)) {
+      if (!validateAddress(payoutRows)) {
         setIsSubmitting(false);
         return;
       }
@@ -164,7 +172,7 @@ export const PayoutForm = () => {
       refreshBalance(activeToken);
 
       if (transferResponse.result.success) {
-        setPayoutRows([{ recipientId: '', amount: '' }]);
+        setPayoutRows([{ address: '', amount: '' }]);
       }
     } catch (error) {
       console.error('Transfer error:', error);
@@ -217,11 +225,10 @@ export const PayoutForm = () => {
           {payoutRows.map((row, index) => (
             <div key={index} className="flex gap-1 sm:gap-2 items-center">
               <input
-                type="email"
-                placeholder="Recipient Email"
-                value={row.recipientId}
+                placeholder="Recipient Address"
+                value={row.address}
                 onChange={(e) =>
-                  updateRow(index, 'recipientId', e.target.value)
+                  updateRow(index, 'address', e.target.value)
                 }
                 className="flex-1 p-1 sm:p-2 border rounded text-sm sm:text-base min-w-0 disabled:opacity-50"
                 disabled={isSubmitting}

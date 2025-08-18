@@ -35,13 +35,15 @@ const RecipientCard = ({
     className={`p-3 rounded ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
   >
     <div className="font-semibold">{isSuccess ? 'Success' : 'Failed'}</div>
-    <div>Recipient ID: {recipient.recipientId}</div>
+    <div>Recipient ID: {recipient.address}</div>
     {isSuccess && recipient.amount && <div>Amount: {recipient.amount}</div>}
   </div>
 );
 
 const TransactionLink = ({ hash }: { hash: string }) => {
-  const { explorerUrl } = getNetworkConfig();
+  const { explorerUrl } = getNetworkConfig(
+    process.env.NEXT_PUBLIC_USE_MAINNET
+  );
 
   return (
     <div>

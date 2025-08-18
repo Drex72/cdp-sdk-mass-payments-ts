@@ -42,6 +42,6 @@ export type TransferResponse = {
 };
 
 export type TransferRecipient = {
-  recipientId: string;
+  address: string;
   amount: string;
 };

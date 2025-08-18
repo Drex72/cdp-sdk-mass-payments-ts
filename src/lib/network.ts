@@ -1,13 +1,15 @@
-import { base, baseSepolia } from 'viem/chains';
 import { NetworkConfig } from '@/lib/types/network';
+import { base, baseSepolia } from 'viem/chains';
 
-export const getNetworkConfig = (): NetworkConfig => {
-  if (process.env.USE_MAINNET === 'true') {
+export const getNetworkConfig = (
+  useMainnet: string = process.env.USE_MAINNET || 'false'
+): NetworkConfig => {
+  if (useMainnet === 'true') {
     baseNetworkConfig.rpcUrl = process.env.BASE_NODE_URL;
     return baseNetworkConfig;
   }
 
-  baseSepoliaNetworkConfig.rpcUrl = process.env.BASE_NODE_URL;
+  baseSepoliaNetworkConfig.rpcUrl = process.env.BASE_SEPOLIA_NODE_URL;
   return baseSepoliaNetworkConfig;
 };
 

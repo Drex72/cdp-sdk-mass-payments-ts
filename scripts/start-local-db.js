@@ -50,14 +50,22 @@ async function createTable(sql) {
 (async () => {
   try {
     neonConfig.fetchEndpoint = (host) => {
-      const [protocol, port] = host === 'db.localtest.me' ? ['http', 4444] : ['https', 443];
+      const [protocol, port] =
+        host === 'db.localtest.me' ? ['http', 4444] : ['https', 443];
       return `${protocol}://${host}:${port}/sql`;
     };
 
-    console.log('Starting local DB...');
-    await startDockerCompose();
+    const DATABASE_URL =
+      process.env.DATABASE_URL ??
+      'postgres://postgres:postgres@db.localtest.me:5432/main';
 
-    const sql = neon('postgres://postgres:postgres@db.localtest.me:5432/main');
+    // Only start Docker compose if we're using a local database
+    if (DATABASE_URL.includes('localtest.me')) {
+      console.log('Starting local DB...');
+      await startDockerCompose();
+    }
+
+    const sql = neon(DATABASE_URL);
 
     console.log('Waiting for DB to be ready...');
     await waitForDbReady(sql);

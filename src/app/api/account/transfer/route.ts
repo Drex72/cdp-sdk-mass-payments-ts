@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
+import { authOptions } from '@/lib/auth';
+import { getBalanceForAddress } from '@/lib/balance';
 import { cdpClient } from '@/lib/cdp';
-import { NextRequest, NextResponse } from 'next/server';
-import { Address, formatUnits, parseUnits } from 'viem';
-import { executeTransfers } from '@/lib/transfer';
 import {
   erc20approveAbi,
+  getTokenAddresses,
   tokenDecimals,
   TokenKey,
-  getTokenAddresses,
 } from '@/lib/constants';
-import { TransferRequest } from '@/lib/types/transfer';
 import { InsufficientBalanceError } from '@/lib/errors';
-import { getUserByEmailHash, hashEmail, createUser } from '@/lib/db/user';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { encodeFunctionData } from 'viem';
-import { randomUUID } from 'crypto';
-import { publicClient } from '@/lib/viem';
-import { getBalanceForAddress } from '@/lib/balance';
 import { getNetworkConfig } from '@/lib/network';
+import { executeTransfers } from '@/lib/transfer';
+import { TransferRequest } from '@/lib/types/transfer';
+import { publicClient } from '@/lib/viem';
+import { randomUUID } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { Address, encodeFunctionData, formatUnits, parseUnits } from 'viem';
 
 const { network } = getNetworkConfig();
 
@@ -61,22 +59,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const invalidEmails = recipients
-      .map((recipient, index) => ({ email: recipient.recipientId, index }))
-      .filter(({ email }) => !EMAIL_REGEX.test(email));
-
-    if (invalidEmails.length > 0) {
-      return NextResponse.json(
-        {
-          error: `Invalid email format in row ${invalidEmails[0].index + 1}: ${invalidEmails[0].email}`,
-        },
-        { status: 400 }
-      );
-    }
-
     const account = await cdpClient.evm.getAccount({ name: session!.user.id });
 
-    const recipientIds = recipients.map((r) => r.recipientId);
+    console.log({account})
+
+    const recipientAddresses: `0x${string}`[] = recipients.map(
+      (r) => r.address as `0x${string}`
+    );
 
     const decimalPrecision = tokenDecimals[token as TokenKey];
     const amounts = recipients.map((r) =>
@@ -99,23 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `Insufficient ${sanitizedToken} balance for transfer. Required: ${formatUnits(totalTransferAmount, decimalPrecision)} ${sanitizedToken}`
       );
     }
-
-    const recipientAccounts = await Promise.all(
-      recipientIds.map(async (recipientId: string) => {
-        const sha256Email = hashEmail(recipientId);
-        let user = await getUserByEmailHash(sha256Email);
-
-        if (!user) {
-          user = await createUser(sha256Email, '');
-        }
-
-        return await cdpClient.evm.getOrCreateAccount({ name: user.userId });
-      })
-    );
-    const recipientAddresses = recipientAccounts.map(
-      (account) => account.address as Address
-    );
-
+console.log({ totalTransferAmount });
     if (token !== 'eth') {
       const tokenAddress = getTokenAddresses(network === 'base')[
         token as TokenKey
@@ -143,7 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         hash: result.transactionHash as `0x${string}`,
       });
     }
-
+console.log({ totalTransferAmount });
     const result = await executeTransfers({
       senderAccount: account,
       token: sanitizedToken as TokenKey,
