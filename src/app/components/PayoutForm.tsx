@@ -21,8 +21,10 @@ import { TransferRecipient, TransferResponse } from '@/lib/types/transfer';
 
 const MAX_ROWS = 100;
 
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Ethereum address validation function
+const isValidEthereumAddress = (address: string): boolean => {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+};
 
 export const PayoutForm = () => {
   const { activeToken, refreshBalance, evmAddress } = useWallet();
@@ -36,27 +38,23 @@ export const PayoutForm = () => {
     useState<TransferResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-const validateAddress = (rows: TransferRecipient[]) => {
-  // Check for Ethereum addresses - should be 42 chars long and start with 0x
-  const invalidAddresses = rows
-    .map((row, index) => ({ address: row.address, index }))
-    .filter(({ address }) => {
-      if (!address) return false; // Skip empty addresses
-      return !(
-        address.length === 42 &&
-        address.startsWith('0x') &&
-        /^0x[0-9a-fA-F]{40}$/.test(address)
-      );
-    });
+  const validateAddress = (rows: TransferRecipient[]) => {
+    // Check for valid Ethereum addresses
+    const invalidAddresses = rows
+      .map((row, index) => ({ address: row.address, index }))
+      .filter(({ address }) => {
+        if (!address) return false; // Skip empty addresses
+        return !isValidEthereumAddress(address);
+      });
 
-  if (invalidAddresses.length > 0) {
-    setError(
-      `Invalid Ethereum address format in row ${invalidAddresses[0].index + 1}: ${invalidAddresses[0].address}`
-    );
-    return false;
-  }
-  return true;
-};
+    if (invalidAddresses.length > 0) {
+      setError(
+        `Invalid Ethereum address format in row ${invalidAddresses[0].index + 1}: ${invalidAddresses[0].address}`
+      );
+      return false;
+    }
+    return true;
+  };
 
   const addRow = () => {
     if (payoutRows.length >= MAX_ROWS) {
@@ -101,7 +99,10 @@ const validateAddress = (rows: TransferRecipient[]) => {
           .filter((row) => row);
 
         // Skip header row if it exists
-        const dataRows = rows[0].includes('recipientId') ? rows.slice(1) : rows;
+        const dataRows =
+          rows[0].includes('address') || rows[0].includes('recipientId')
+            ? rows.slice(1)
+            : rows;
 
         if (dataRows.length > MAX_ROWS) {
           setError(
@@ -111,9 +112,7 @@ const validateAddress = (rows: TransferRecipient[]) => {
         }
 
         const parsedRows = dataRows.map((row) => {
-          const [address, amount] = row
-            .split(',')
-            .map((cell) => cell.trim());
+          const [address, amount] = row.split(',').map((cell) => cell.trim());
           return { address, amount };
         });
 
@@ -126,7 +125,7 @@ const validateAddress = (rows: TransferRecipient[]) => {
       } catch (err) {
         console.error('Error parsing CSV:', err);
         setError(
-          'Error parsing CSV file. Please ensure it has the correct format: recipientId,amount'
+          'Error parsing CSV file. Please ensure it has the correct format: address,amount'
         );
       }
     };
@@ -225,11 +224,9 @@ const validateAddress = (rows: TransferRecipient[]) => {
           {payoutRows.map((row, index) => (
             <div key={index} className="flex gap-1 sm:gap-2 items-center">
               <input
-                placeholder="Recipient Address"
+                placeholder="0x1234... (Wallet Address)"
                 value={row.address}
-                onChange={(e) =>
-                  updateRow(index, 'address', e.target.value)
-                }
+                onChange={(e) => updateRow(index, 'address', e.target.value)}
                 className="flex-1 p-1 sm:p-2 border rounded text-sm sm:text-base min-w-0 disabled:opacity-50"
                 disabled={isSubmitting}
               />

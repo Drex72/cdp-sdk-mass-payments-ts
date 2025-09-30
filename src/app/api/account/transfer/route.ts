@@ -35,8 +35,10 @@ import { Address, encodeFunctionData, formatUnits, parseUnits } from 'viem';
 
 const { network } = getNetworkConfig();
 
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Ethereum address validation function
+const isValidEthereumAddress = (address: string): boolean => {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+};
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Get account details
@@ -59,9 +61,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Validate all recipient addresses
+    const invalidAddresses = recipients.filter(
+      (recipient) => !isValidEthereumAddress(recipient.address)
+    );
+
+    if (invalidAddresses.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Invalid Ethereum address format: ${invalidAddresses[0].address}`,
+        },
+        { status: 400 }
+      );
+    }
+
     const account = await cdpClient.evm.getAccount({ name: session!.user.id });
 
-    console.log({account})
+    console.log({ account });
 
     const recipientAddresses: `0x${string}`[] = recipients.map(
       (r) => r.address as `0x${string}`
@@ -88,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `Insufficient ${sanitizedToken} balance for transfer. Required: ${formatUnits(totalTransferAmount, decimalPrecision)} ${sanitizedToken}`
       );
     }
-console.log({ totalTransferAmount });
+    console.log({ totalTransferAmount });
     if (token !== 'eth') {
       const tokenAddress = getTokenAddresses(network === 'base')[
         token as TokenKey
@@ -116,7 +132,7 @@ console.log({ totalTransferAmount });
         hash: result.transactionHash as `0x${string}`,
       });
     }
-console.log({ totalTransferAmount });
+    console.log({ totalTransferAmount });
     const result = await executeTransfers({
       senderAccount: account,
       token: sanitizedToken as TokenKey,

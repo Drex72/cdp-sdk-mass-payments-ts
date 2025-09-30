@@ -41,9 +41,7 @@ const RecipientCard = ({
 );
 
 const TransactionLink = ({ hash }: { hash: string }) => {
-  const { explorerUrl } = getNetworkConfig(
-    process.env.NEXT_PUBLIC_USE_MAINNET
-  );
+  const { explorerUrl } = getNetworkConfig(process.env.NEXT_PUBLIC_USE_MAINNET);
 
   return (
     <div>
