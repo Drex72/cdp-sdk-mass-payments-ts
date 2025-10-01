@@ -61,8 +61,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const account = await cdpClient.evm.getAccount({ name: session!.user.id });
 
-    console.log({account})
-
     const recipientAddresses: `0x${string}`[] = recipients.map(
       (r) => r.address as `0x${string}`
     );
@@ -88,7 +86,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `Insufficient ${sanitizedToken} balance for transfer. Required: ${formatUnits(totalTransferAmount, decimalPrecision)} ${sanitizedToken}`
       );
     }
-console.log({ totalTransferAmount });
     if (token !== 'eth') {
       const tokenAddress = getTokenAddresses(network === 'base')[
         token as TokenKey
@@ -116,7 +113,6 @@ console.log({ totalTransferAmount });
         hash: result.transactionHash as `0x${string}`,
       });
     }
-console.log({ totalTransferAmount });
     const result = await executeTransfers({
       senderAccount: account,
       token: sanitizedToken as TokenKey,

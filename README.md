@@ -89,3 +89,9 @@ bun run dev
 ```
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
+
+
+
+
+
+If you want to send USDC on test net, you;re required to have ETH because of the gas fees
