@@ -35,9 +35,6 @@ import { Address, encodeFunctionData, formatUnits, parseUnits } from 'viem';
 
 const { network } = getNetworkConfig();
 
-// Email validation regex
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Get account details
   const session = await getServerSession(authOptions);
